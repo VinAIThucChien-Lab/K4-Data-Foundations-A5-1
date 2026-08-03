@@ -1,0 +1,187 @@
+<!doctype html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Chunk Lab</title>
+  <link rel="icon" href="/assets/shopee-favicon.ico">
+  <link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+  <header class="app-header">
+    <div class="brand-block">
+      <span class="brand-mark">CL</span>
+      <div>
+        <h1>Chunk Lab</h1>
+        <p>K4 · Shopee Returns Corpus</p>
+      </div>
+    </div>
+    <div class="header-actions" style="display: flex; align-items: center; gap: 16px;">
+      <a href="/chatbot.html" class="nav-link-btn" style="color: white; text-decoration: none; font-size: 12px; font-weight: 700; padding: 6px 14px; background: var(--orange); border-radius: 6px;">🤖 Mở Chatbot Trợ Lý AI</a>
+      <div id="runtimeStatus" class="header-status"><span class="status-dot"></span><span>Đang kiểm tra cấu hình</span></div>
+    </div>
+  </header>
+
+  <main class="workspace">
+    <section class="source-pane" aria-label="Nguồn văn bản">
+      <div class="pane-heading">
+        <div>
+          <span class="eyebrow">SOURCE</span>
+          <h2>Văn bản đầu vào</h2>
+        </div>
+        <button id="clearButton" class="quiet-button" type="button">Xóa</button>
+      </div>
+
+      <label class="field-label" for="documentSelect">Tài liệu</label>
+      <select id="documentSelect">
+        <option value="">Văn bản tùy chỉnh</option>
+      </select>
+
+      <textarea id="sourceText" spellcheck="false" placeholder="Dán văn bản chính sách tại đây..."></textarea>
+      <div class="source-meta">
+        <span><strong id="characterCount">0</strong> ký tự</span>
+        <span><strong id="wordCount">0</strong> từ</span>
+      </div>
+    </section>
+
+    <section class="result-pane" aria-label="Kết quả chunking">
+      <div class="control-band">
+        <div class="strategy-row">
+          <div>
+            <span class="eyebrow">STRATEGY</span>
+            <div id="strategyControl" class="segmented-control" role="tablist">
+              <button data-method="fixed" role="tab" type="button">Fixed</button>
+              <button data-method="sentence" role="tab" type="button">Sentence</button>
+              <button data-method="recursive" role="tab" type="button" class="active" aria-selected="true">Recursive</button>
+              <button data-method="custom" role="tab" type="button">Custom</button>
+            </div>
+          </div>
+          <button id="runButton" class="primary-button" type="button">Chạy chunking</button>
+        </div>
+
+        <div id="parameterControls" class="parameter-controls"></div>
+      </div>
+
+      <div class="result-toolbar">
+        <div class="view-tabs" role="tablist">
+          <button class="active" data-view="chunks" type="button">Chunks</button>
+          <button data-view="compare" type="button">So sánh</button>
+          <button data-view="chat" type="button">💬 Chatbot RAG</button>
+        </div>
+        <label class="search-field">
+          <span>Tìm trong chunks</span>
+          <input id="chunkSearch" type="search" placeholder="Từ khóa">
+        </label>
+      </div>
+
+      <div id="chunksView" class="view-panel">
+        <div class="stats-grid" aria-label="Thống kê">
+          <div><span>Chunks</span><strong id="statCount">0</strong></div>
+          <div><span>Trung bình</span><strong id="statAverage">0</strong></div>
+          <div><span>Ngắn nhất</span><strong id="statMinimum">0</strong></div>
+          <div><span>Dài nhất</span><strong id="statMaximum">0</strong></div>
+        </div>
+        <div id="chunkMap" class="chunk-map" aria-label="Bản đồ độ dài chunks"></div>
+        <div id="emptyState" class="empty-state">
+          <strong>Chưa có kết quả</strong>
+          <span>Chọn tài liệu và chạy một chiến lược.</span>
+        </div>
+        <div id="chunkList" class="chunk-list"></div>
+      </div>
+
+      <div id="compareView" class="view-panel hidden">
+        <div class="compare-heading">
+          <div>
+            <span class="eyebrow">SAME INPUT</span>
+            <h2>So sánh chiến lược</h2>
+          </div>
+          <button id="compareButton" class="secondary-button" type="button">Chạy tất cả</button>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr><th>Chiến lược</th><th>Chunks</th><th>Trung bình</th><th>Min</th><th>Max</th><th>Phân bố</th></tr>
+            </thead>
+            <tbody id="compareBody"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <div id="chatView" class="view-panel hidden">
+        <div class="chat-container">
+          <div class="chat-toolbar">
+            <div class="chat-setting-group">
+              <div class="chat-setting-item">
+                <label for="chatMethodSelect">⚙️ Kiểu Chunking</label>
+                <select id="chatMethodSelect">
+                  <option value="recursive" selected>Recursive (Ưu tiên đoạn/câu)</option>
+                  <option value="fixed">Fixed Size (Cố định 500 ký tự)</option>
+                  <option value="sentence">Sentence (Gộp 3 câu)</option>
+                  <option value="custom">Custom / Structured (Điều khoản)</option>
+                </select>
+              </div>
+
+              <div class="chat-setting-item">
+                <label for="chatModelSelect">🤖 Model AI</label>
+                <select id="chatModelSelect">
+                  <option value="gpt-4o-mini">GPT-4o Mini (Nhanh & Tối ưu)</option>
+                  <option value="gpt-4o">GPT-4o (Chính xác cao)</option>
+                  <option value="gpt-3.5-turbo">GPT-3.5 Turbo</option>
+                </select>
+              </div>
+
+              <div class="chat-setting-item">
+                <label for="chatTopK">🎯 Top-K</label>
+                <select id="chatTopK">
+                  <option value="1">1 chunk</option>
+                  <option value="2">2 chunks</option>
+                  <option value="3" selected>3 chunks</option>
+                  <option value="5">5 chunks</option>
+                  <option value="8">8 chunks</option>
+                </select>
+              </div>
+
+              <div class="chat-setting-item">
+                <label for="chatScopeSelect">🗄️ Database Nguồn</label>
+                <select id="chatScopeSelect">
+                  <option value="all">🗄️ Toàn bộ Database (Shopee KB)</option>
+                  <option value="current">📝 Văn bản Editor hiện tại</option>
+                </select>
+              </div>
+            </div>
+
+            <button id="clearChatButton" class="quiet-button" type="button">Xóa hội thoại</button>
+          </div>
+
+          <div class="suggested-prompts">
+            <span class="prompts-label">Gợi ý câu hỏi:</span>
+            <button class="prompt-chip" type="button" data-prompt="Thời hạn yêu cầu Trả hàng/Hoàn tiền là bao nhiêu ngày?">Thời hạn trả hàng?</button>
+            <button class="prompt-chip" type="button" data-prompt="Điều kiện để được duyệt trả hàng bị hư hỏng là gì?">Điều kiện sản phẩm hỏng?</button>
+            <button class="prompt-chip" type="button" data-prompt="Ai sẽ chịu phí vận chuyển khi hoàn trả hàng?">Phí vận chuyển hoàn trả?</button>
+            <button class="prompt-chip" type="button" data-prompt="Quy trình hoàn tiền cho người mua diễn ra như thế nào?">Quy trình hoàn tiền?</button>
+          </div>
+
+          <div id="chatMessages" class="chat-messages" aria-live="polite">
+            <div class="chat-welcome">
+              <div class="welcome-icon">💬</div>
+              <h3>RAG Chatbot Assistant</h3>
+              <p>Hỏi bất kỳ thắc mắc nào với dữ liệu thực tế từ Database. Bạn có thể chủ động chọn <strong>Kiểu Chunking</strong>, <strong>Model AI</strong> và <strong>Nguồn Database</strong> ở thanh cấu hình phía trên.</p>
+            </div>
+          </div>
+
+          <form id="chatForm" class="chat-input-wrapper">
+            <textarea id="chatInput" placeholder="Nhập câu hỏi của bạn tại đây... (Nhấn Enter để gửi)" rows="1"></textarea>
+            <button id="chatSendButton" type="submit" class="primary-button send-btn">
+              <span>Gửi câu hỏi</span>
+            </button>
+          </form>
+        </div>
+      </div>
+
+    </section>
+  </main>
+
+  <div id="toast" class="toast" role="status" aria-live="polite"></div>
+  <script src="/app.js"></script>
+</body>
+</html>
