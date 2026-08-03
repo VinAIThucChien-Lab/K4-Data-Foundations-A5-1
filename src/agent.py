@@ -19,18 +19,10 @@ class KnowledgeBaseAgent:
 
     def answer(self, question: str, top_k: int = 3) -> str:
         results = self.store.search(question, top_k=top_k)
-        context = "\n\n".join(
-            f"[Context {index}]\n{result['content']}"
-            for index, result in enumerate(results, start=1)
-        )
-        if not context:
-            context = "No relevant context was found."
-
+        context = "\n\n".join(r["content"] for r in results)
         prompt = (
-            "Answer the question using only the supplied context. "
-            "If the context does not contain the answer, say that you do not know.\n\n"
             f"Context:\n{context}\n\n"
-            f"Question: {question}\n"
-            "Answer:"
+            f"Question: {question}\n\n"
+            f"Answer:"
         )
         return self.llm_fn(prompt)
