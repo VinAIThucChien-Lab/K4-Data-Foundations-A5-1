@@ -1,3 +1,10 @@
 doc_id,file_path,title,source_url,retrieved_at,document_version,license_or_permission
 k4-returns-policy,data/k4_ecommerce/returns-policy.md,Chính sách đổi trả,https://example.com/chinh-sach/doi-tra,2026-08-02,2026.1,example-template-replace-me
 k4-seller-listing,data/k4_ecommerce/seller-listing.md,Quy định đăng bán,https://example.com/nguoi-ban/dang-ban,2026-08-02,2026.1,example-template-replace-me
+shopee-returns-01,data/k4_ecommerce/shopee-returns-01.md,[Trả hàng/Hoàn tiền] Những quy định chung về Trả hàng/Hoàn tiền của Shopee | Shopee Trung tâm trợ giúp,https://help.shopee.vn/portal/4/article/188931,2026-08-03,not-stated,public-page
+shopee-returns-02,data/k4_ecommerce/shopee-returns-02.md,[Trả hàng/ Hoàn tiền] Hướng dẫn gửi yêu cầu Trả hàng/ Hoàn tiền | Shopee Trung tâm trợ giúp,https://help.shopee.vn/portal/4/article/79233?seo=1,2026-08-03,not-stated,public-page
+shopee-returns-03,data/k4_ecommerce/shopee-returns-03.md,[Trả hàng/ Hoàn tiền] Sản phẩm hạn chế trả hàng là gì? | Shopee Trung tâm trợ giúp,https://help.shopee.vn/portal/4/article/79465,2026-08-03,not-stated,public-page
+shopee-returns-04,data/k4_ecommerce/shopee-returns-04.md,[Trả hàng/Hoàn tiền] Hướng dẫn chuẩn bị bằng chứng khi yêu cầu Trả hàng/ Hoàn tiền | Shopee Trung tâm trợ giúp,https://help.shopee.vn/portal/4/article/79467,2026-08-03,not-stated,public-page
+shopee-returns-05,data/k4_ecommerce/shopee-returns-05.md,[Trả hàng/ Hoàn tiền] Theo dõi tình trạng Trả hàng/ Hoàn tiền trên Shopee | Shopee Trung tâm trợ giúp,https://help.shopee.vn/portal/4/article/79298?seo=1,2026-08-03,not-stated,public-page
+shopee-returns-06,data/k4_ecommerce/shopee-returns-06.md,[Trả hàng/ Hoàn tiền] Thời gian nhận tiền hoàn và cách kiểm tra tiền hoàn | Shopee Trung tâm trợ giúp,https://help.shopee.vn/portal/4/article/189473,2026-08-03,not-stated,public-page
+shopee-returns-07,data/k4_ecommerce/shopee-returns-07.md,[Trả hàng/ Hoàn tiền] Quy trình Shopee xử lý yêu cầu Trả hàng/ Hoàn tiền | Shopee Trung tâm trợ giúp,https://help.shopee.vn/portal/4/article/190242,2026-08-03,not-stated,public-page

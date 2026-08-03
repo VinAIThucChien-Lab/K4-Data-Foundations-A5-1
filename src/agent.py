@@ -19,12 +19,15 @@ class KnowledgeBaseAgent:
 
     def answer(self, question: str, top_k: int = 3) -> str:
         results = self.store.search(question, top_k=top_k)
-        context = "\n\n".join(
-            f"[Context {index}]\n{result['content']}"
-            for index, result in enumerate(results, start=1)
-        )
-        if not context:
-            context = "No relevant context was found."
+        if not results:
+            return "Không tìm thấy thông tin liên quan trong kho tri thức."
+
+        # Ghép context đánh số để truy vết nguồn
+        context_parts = []
+        for i, result in enumerate(results, start=1):
+            doc_id = result["metadata"].get("doc_id", "unknown")
+            context_parts.append(f"[{i}] (doc_id: {doc_id})\n{result['content']}")
+        context = "\n\n".join(context_parts)
 
         prompt = (
             "Answer the question using only the supplied context. "

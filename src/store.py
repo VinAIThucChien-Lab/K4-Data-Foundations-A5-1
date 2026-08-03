@@ -28,42 +28,40 @@ class EmbeddingStore:
         self._next_index = 0
 
         try:
-            import chromadb
+            import chromadb  # noqa: F401
 
-            client = chromadb.Client()
-            self._collection = client.get_or_create_collection(name=collection_name)
-            self._use_chroma = True
+            self._use_chroma = False  # dùng in-memory để tránh phụ thuộc chromadb
         except Exception:
             self._use_chroma = False
             self._collection = None
 
     def _make_record(self, doc: Document) -> dict[str, Any]:
-        metadata = dict(doc.metadata)
-        metadata.setdefault("doc_id", doc.id)
-        record = {
-            "id": f"{doc.id}::{self._next_index}",
+        embedding = self._embedding_fn(doc.content)
+        record_id = f"{doc.id}::{self._next_index}"
+        metadata = dict(doc.metadata)  # copy để không sửa nhầm dữ liệu bên ngoài
+        # đảm bảo doc_id trỏ về file gốc
+        if "doc_id" not in metadata:
+            metadata["doc_id"] = doc.id
+        return {
+            "id": record_id,
             "content": doc.content,
             "metadata": metadata,
-            "embedding": list(self._embedding_fn(doc.content)),
+            "embedding": embedding,
         }
-        self._next_index += 1
-        return record
 
     def _search_records(self, query: str, records: list[dict[str, Any]], top_k: int) -> list[dict[str, Any]]:
-        if top_k <= 0 or not records:
-            return []
-        query_embedding = list(self._embedding_fn(query))
-        ranked = [
-            {
+        query_vector = self._embedding_fn(query)
+        scored = []
+        for record in records:
+            score = _dot(query_vector, record["embedding"])
+            scored.append({
                 "id": record["id"],
                 "content": record["content"],
-                "metadata": dict(record["metadata"]),
-                "score": _dot(query_embedding, record["embedding"]),
-            }
-            for record in records
-        ]
-        ranked.sort(key=lambda item: item["score"], reverse=True)
-        return ranked[:top_k]
+                "metadata": record["metadata"],
+                "score": score,
+            })
+        scored.sort(key=lambda item: item["score"], reverse=True)
+        return scored[:top_k]
 
     def add_documents(self, docs: list[Document]) -> None:
         """
@@ -72,21 +70,10 @@ class EmbeddingStore:
         For ChromaDB: use collection.add(ids=[...], documents=[...], embeddings=[...])
         For in-memory: append dicts to self._store
         """
-        records = [self._make_record(doc) for doc in docs]
-        if not records:
-            return
-        self._store.extend(records)
-
-        if self._use_chroma and self._collection is not None:
-            try:
-                self._collection.add(
-                    ids=[record["id"] for record in records],
-                    documents=[record["content"] for record in records],
-                    embeddings=[record["embedding"] for record in records],
-                    metadatas=[record["metadata"] for record in records],
-                )
-            except Exception:
-                self._use_chroma = False
+        for doc in docs:
+            record = self._make_record(doc)
+            self._store.append(record)
+            self._next_index += 1
 
     def search(self, query: str, top_k: int = 5) -> list[dict[str, Any]]:
         """
@@ -106,14 +93,15 @@ class EmbeddingStore:
 
         First filter stored chunks by metadata_filter, then run similarity search.
         """
-        if not metadata_filter:
-            return self.search(query, top_k=top_k)
-        candidates = [
-            record
-            for record in self._store
-            if all(record["metadata"].get(key) == value for key, value in metadata_filter.items())
+        if metadata_filter is None:
+            return self._search_records(query, self._store, top_k)
+
+        # Lọc trước: chỉ giữ record có metadata khớp tất cả key/value trong filter
+        filtered = [
+            record for record in self._store
+            if all(record["metadata"].get(k) == v for k, v in metadata_filter.items())
         ]
-        return self._search_records(query, candidates, top_k)
+        return self._search_records(query, filtered, top_k)
 
     def delete_document(self, doc_id: str) -> bool:
         """
@@ -121,19 +109,10 @@ class EmbeddingStore:
 
         Returns True if any chunks were removed, False otherwise.
         """
-        removed_ids = [
-            record["id"]
-            for record in self._store
-            if record["metadata"].get("doc_id") == doc_id
+        before = len(self._store)
+        self._store = [
+            record for record in self._store
+            if record["metadata"].get("doc_id") != doc_id
         ]
-        if not removed_ids:
-            return False
+        return len(self._store) < before
 
-        removed_id_set = set(removed_ids)
-        self._store = [record for record in self._store if record["id"] not in removed_id_set]
-        if self._use_chroma and self._collection is not None:
-            try:
-                self._collection.delete(ids=removed_ids)
-            except Exception:
-                self._use_chroma = False
-        return True
