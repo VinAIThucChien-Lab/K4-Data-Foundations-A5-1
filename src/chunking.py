@@ -127,6 +127,176 @@ class RecursiveChunker:
         return chunks
 
 
+class CustomChunker:
+    """Chiến lược chia nhỏ tùy chỉnh cho tài liệu chính sách TMĐT / hỗ trợ khách hàng.
+
+    Lý do thiết kế:
+        Tài liệu chính sách thường có cấu trúc rõ ràng theo heading (# / ## / ###),
+        điều khoản (Điều X, Mục X, 1., 1.1) hoặc dạng FAQ (Hỏi/Đáp, Q/A).
+        Việc chia theo ranh giới ngữ nghĩa này giữ nguyên ngữ cảnh mỗi chunk,
+        giúp retrieval chính xác hơn so với chia cố định theo ký tự.
+
+    Chiến lược phát hiện (theo thứ tự ưu tiên):
+        1. Heading Markdown: dòng bắt đầu bằng # / ## / ###
+        2. Điều khoản pháp lý: "Điều X", "Mục X", "Chương X"
+        3. Mục đánh số: "1.", "1.1", "1.1.1" ở đầu dòng
+        4. FAQ: "Q:", "A:", "Hỏi:", "Đáp:", "Câu hỏi X"
+
+    Nếu không tìm thấy pattern nào, fallback về RecursiveChunker.
+    Chunk quá dài sẽ được chia nhỏ tiếp bằng RecursiveChunker.
+    """
+
+    # Regex patterns cho từng loại ranh giới
+    _HEADING_RE = re.compile(r"^(#{1,4})\s+(.+)", re.MULTILINE)
+    _CLAUSE_RE = re.compile(
+        r"^(Điều\s+\d+|Mục\s+\d+|Chương\s+\d+)[.:\s]",
+        re.MULTILINE,
+    )
+    _NUMBERED_RE = re.compile(r"^(\d+(?:\.\d+)*)[.)]\s+", re.MULTILINE)
+    _FAQ_RE = re.compile(
+        r"^(Q\s*\d*|A\s*\d*|Hỏi\s*\d*|Đáp\s*\d*|Câu\s*hỏi\s*\d+|Trả\s*lời\s*\d*)\s*[.:]\s*",
+        re.MULTILINE | re.IGNORECASE,
+    )
+
+    def __init__(self, max_chunk_size: int = 1000, min_chunk_size: int = 50) -> None:
+        if max_chunk_size <= 0:
+            raise ValueError("max_chunk_size must be greater than 0")
+        self.max_chunk_size = max_chunk_size
+        self.min_chunk_size = min_chunk_size
+        self._fallback = RecursiveChunker(chunk_size=max_chunk_size)
+
+    def chunk(self, text: str) -> list[str]:
+        if not text or not text.strip():
+            return []
+
+        text = text.strip()
+
+        # Thử phát hiện cấu trúc theo thứ tự ưu tiên
+        sections = self._split_by_headings(text)
+        if not sections:
+            sections = self._split_by_clauses(text)
+        if not sections:
+            sections = self._split_by_faq(text)
+        if not sections:
+            # Fallback: dùng RecursiveChunker
+            return self._fallback.chunk(text)
+
+        # Xử lý từng section: giữ heading, chia nhỏ nếu quá dài
+        chunks: list[str] = []
+        for heading, body in sections:
+            section_text = f"{heading}\n{body}".strip() if heading else body.strip()
+            if not section_text:
+                continue
+
+            if len(section_text) <= self.max_chunk_size:
+                chunks.append(section_text)
+            else:
+                # Chia nhỏ body, prefix heading vào mỗi sub-chunk
+                sub_chunks = self._fallback.chunk(body.strip())
+                for sub in sub_chunks:
+                    if heading:
+                        prefixed = f"{heading}\n{sub}"
+                    else:
+                        prefixed = sub
+                    chunks.append(prefixed.strip())
+
+        # Gộp chunk quá nhỏ vào chunk trước đó
+        return self._merge_small_chunks(chunks)
+
+    def _split_by_headings(self, text: str) -> list[tuple[str, str]] | None:
+        """Chia theo heading Markdown (# / ## / ###)."""
+        matches = list(self._HEADING_RE.finditer(text))
+        if len(matches) < 2:
+            return None
+        return self._extract_sections(text, matches)
+
+    def _split_by_clauses(self, text: str) -> list[tuple[str, str]] | None:
+        """Chia theo điều khoản (Điều X, Mục X, Chương X) hoặc mục đánh số."""
+        matches = list(self._CLAUSE_RE.finditer(text))
+        if len(matches) < 2:
+            # Thử mục đánh số
+            matches = list(self._NUMBERED_RE.finditer(text))
+        if len(matches) < 2:
+            return None
+        return self._extract_sections(text, matches)
+
+    def _split_by_faq(self, text: str) -> list[tuple[str, str]] | None:
+        """Chia theo dạng FAQ (Q/A, Hỏi/Đáp)."""
+        matches = list(self._FAQ_RE.finditer(text))
+        if len(matches) < 2:
+            return None
+
+        # Gộp cặp Q-A thành 1 chunk
+        sections: list[tuple[str, str]] = []
+
+        # Nội dung trước FAQ đầu tiên
+        preamble = text[: matches[0].start()].strip()
+        if preamble:
+            sections.append(("", preamble))
+
+        i = 0
+        while i < len(matches):
+            start = matches[i].start()
+            # Tìm cặp Q-A: nếu match hiện tại là Q/Hỏi, gộp với A/Đáp tiếp theo
+            if i + 1 < len(matches):
+                end = matches[i + 2].start() if i + 2 < len(matches) else len(text)
+                current_label = matches[i].group(1).strip().lower()
+                next_label = matches[i + 1].group(1).strip().lower()
+
+                # Nếu là cặp hỏi-đáp, gộp lại
+                is_question = any(
+                    current_label.startswith(q) for q in ("q", "hỏi", "câu")
+                )
+                is_answer = any(
+                    next_label.startswith(a) for a in ("a", "đáp", "trả")
+                )
+                if is_question and is_answer:
+                    chunk_text = text[start:end].strip()
+                    sections.append(("", chunk_text))
+                    i += 2
+                    continue
+
+            # Không phải cặp, lấy từng match
+            end = matches[i + 1].start() if i + 1 < len(matches) else len(text)
+            chunk_text = text[start:end].strip()
+            sections.append(("", chunk_text))
+            i += 1
+
+        return sections if len(sections) >= 2 else None
+
+    def _extract_sections(
+        self, text: str, matches: list[re.Match]
+    ) -> list[tuple[str, str]]:
+        """Trích xuất sections từ danh sách regex matches."""
+        sections: list[tuple[str, str]] = []
+
+        # Nội dung trước section đầu tiên
+        preamble = text[: matches[0].start()].strip()
+        if preamble:
+            sections.append(("", preamble))
+
+        for i, match in enumerate(matches):
+            heading = match.group(0).strip()
+            start = match.end()
+            end = matches[i + 1].start() if i + 1 < len(matches) else len(text)
+            body = text[start:end].strip()
+            sections.append((heading, body))
+
+        return sections
+
+    def _merge_small_chunks(self, chunks: list[str]) -> list[str]:
+        """Gộp chunk quá nhỏ vào chunk liền trước."""
+        if not chunks:
+            return []
+        merged: list[str] = [chunks[0]]
+        for chunk in chunks[1:]:
+            if len(chunk) < self.min_chunk_size and merged:
+                merged[-1] = f"{merged[-1]}\n\n{chunk}"
+            else:
+                merged.append(chunk)
+        return merged
+
+
 def _dot(a: list[float], b: list[float]) -> float:
     return sum(x * y for x, y in zip(a, b))
 
