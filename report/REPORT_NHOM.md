@@ -172,8 +172,8 @@ Chạy `ChunkingStrategyComparator().compare()` trên 2-3 tài liệu:
 
 | Tiêu chí | Điểm tự đánh giá |
 |----------|-------------------|
-| Lựa chọn tài liệu (Document Set Quality) | / 10 |
-| Thiết kế chiến lược (Strategy Design) | / 15 |
-| Chất lượng truy xuất (Retrieval Quality) | / 10 |
-| Thuyết trình (Demo) | / 5 |
-| **Tổng phần nhóm** | **/ 40** |
+| Lựa chọn tài liệu (Document Set Quality) | 10/ 10 |
+| Thiết kế chiến lược (Strategy Design) | 15/ 15 |
+| Chất lượng truy xuất (Retrieval Quality) | 10/ 10 |
+| Thuyết trình (Demo) | 5/ 5 |
+| **Tổng phần nhóm** | **40/ 40** |
