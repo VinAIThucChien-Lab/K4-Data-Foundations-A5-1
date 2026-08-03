@@ -28,7 +28,7 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Callable
 
-from src.chunking import FixedSizeChunker
+from src.chunking import FixedSizeChunker, SentenceChunker
 from src.models import Document
 from src.store import EmbeddingStore
 
@@ -122,7 +122,7 @@ def build_knowledge_base(
     Truyền CHUNKER bạn chọn (mặc định `FixedSizeChunker`). Cần `EmbeddingStore`
     bạn đã hoàn thành ở Giai đoạn 2.
     """
-    chunker = chunker or FixedSizeChunker()
+    chunker = chunker or SentenceChunker(max_sentences_per_chunk=3)
     chunk_docs: list[Document] = []
     for doc in load_documents(data_dir):
         chunk_docs.extend(chunk_document(doc, chunker))

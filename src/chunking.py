@@ -159,7 +159,7 @@ class ChunkingStrategyComparator:
 
     def compare(self, text: str, chunk_size: int = 200) -> dict:
         fixed_size_chunker = FixedSizeChunker(chunk_size=chunk_size, overlap=chunk_size // 10)
-        by_sentences_chunker = SentenceChunker(max_sentences_per_chunk=max(1, chunk_size // 80))
+        by_sentences_chunker = SentenceChunker(max_sentences_per_chunk=3)
         recursive_chunker = RecursiveChunker(chunk_size=chunk_size)
 
         strategies = {
