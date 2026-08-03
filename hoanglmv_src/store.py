@@ -72,31 +72,10 @@ class EmbeddingStore:
         For ChromaDB: use collection.add(ids=[...], documents=[...], embeddings=[...])
         For in-memory: append dicts to self._store
         """
-        if not docs:
-            return
-
-        if hasattr(self._embedding_fn, "embed_many"):
-            embeddings = self._embedding_fn.embed_many([doc.content for doc in docs])
-        else:
-            embeddings = [list(self._embedding_fn(doc.content)) for doc in docs]
-
-        records = []
-        for doc, emb in zip(docs, embeddings):
-            metadata = dict(doc.metadata)
-            metadata.setdefault("doc_id", doc.id)
-            record = {
-                "id": f"{doc.id}::{self._next_index}",
-                "content": doc.content,
-                "metadata": metadata,
-                "embedding": list(emb),
-            }
-            self._next_index += 1
-            records.append(record)
-
+        records = [self._make_record(doc) for doc in docs]
         if not records:
             return
         self._store.extend(records)
-
 
         if self._use_chroma and self._collection is not None:
             try:
@@ -107,6 +86,8 @@ class EmbeddingStore:
                     metadatas=[record["metadata"] for record in records],
                 )
             except Exception:
+                # The in-memory copy remains fully functional if Chroma rejects
+                # an unsupported metadata value or is otherwise unavailable.
                 self._use_chroma = False
 
     def search(self, query: str, top_k: int = 5) -> list[dict[str, Any]]:

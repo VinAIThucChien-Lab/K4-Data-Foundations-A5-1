@@ -41,6 +41,16 @@ uv run pytest tests/ -v   # Phần lớn bài kiểm thử sẽ THẤT BẠI (ch
 Mặc định, lab vẫn chạy với trình nhúng giả lập `_mock_embed` nên **không bắt buộc** cài đặt mô hình nhúng (embedder) thật.
 File `.env` được tự động nạp khi chạy `main.py`. Với các đoạn mã Python (snippet) chạy trực tiếp, hãy dùng lệnh `export` cho các biến môi trường cần thiết hoặc gọi hàm `load_dotenv()` nếu cần. Mọi lệnh Python trong repo nên chạy qua `uv run` để dùng đúng môi trường đã khóa trong `uv.lock`.
 
+### Demo giao diện chunking
+
+Giao diện chunking chạy hoàn toàn cục bộ nên không bắt buộc API key. Nếu `.env` có `OPENAI_API_KEY`, thanh trạng thái sẽ tự nhận diện cấu hình OpenAI mà không gửi key xuống trình duyệt:
+
+```bash
+uv run python web_app.py
+```
+
+Mở `http://127.0.0.1:8080` để chọn tài liệu, đổi giữa Fixed, Sentence, Recursive và Custom; sau đó chỉnh tham số hoặc xem bảng so sánh chunk.
+
 > **Giai đoạn 2 (so sánh retrieval): đặt `EMBEDDING_PROVIDER=local`** để dùng trình nhúng đa ngữ (mô tả bên dưới). Mock sinh vector xác định nhưng **gần như ngẫu nhiên theo cả chuỗi** — chỉ hợp để chạy unit test, **không phản ánh chất lượng ngữ nghĩa** và không nên dùng để kết luận chiến lược chunking/tiếng Việt nào tốt hơn.
 
 ## Tùy Chọn Mô Hình Nhúng (Embedding Backend)
