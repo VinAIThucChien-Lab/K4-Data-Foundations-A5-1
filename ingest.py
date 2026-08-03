@@ -151,7 +151,7 @@ def _self_check() -> int:
     assert body.startswith("Câu nội dung thứ nhất."), repr(body)
 
     doc = Document(id="demo-policy", content=body * 20, metadata=meta)
-    chunks = chunk_document(doc, FixedSizeChunker(chunk_size=60, overlap=10))
+    chunks = chunk_document(doc, SentenceChunker(max_sentences_per_chunk=3))
     assert len(chunks) > 1, "kỳ vọng nhiều hơn 1 chunk"
     assert all(c.metadata["doc_id"] == "demo-policy" for c in chunks), chunks
     assert all("chunk_index" in c.metadata for c in chunks), chunks

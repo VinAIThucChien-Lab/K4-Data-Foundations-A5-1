@@ -164,7 +164,7 @@ Chạy **5 câu hỏi đánh giá của nhóm** trên mã nguồn cá nhân củ
 *(Giải thích: Vì cơ sở dữ liệu starter hiện tại chỉ có tổng cộng 3 chunk, nên toàn bộ 3 chunk đều nằm trong danh sách top-3 trả về của mọi câu hỏi, dẫn đến tỷ lệ chứa chunk liên quan trong top-3 là 5/5. Tuy nhiên, nếu xét Top-1 thì độ chính xác bị sai lệch lớn ở Câu 2 do mô hình nhúng giả lập không thể hiện được sự tương đồng ngữ nghĩa thực).*
 
 **Điều hay nhất tôi học được từ thành viên khác / nhóm khác (qua demo):**
-> Tôi nhận thấy việc phân mảnh đệ quy (RecursiveChunker) kết hợp với thiết kế metadata thông minh giúp tối ưu hóa kết quả tìm kiếm rất nhiều. Việc gán các thẻ metadata cụ thể như `customer_role` cho phép chúng ta lọc (filter) bớt nhiễu hiệu quả trước khi tiến hành tính toán độ tương tự cosine, tăng tốc độ và độ chính xác của câu trả lời.
+> Tôi nhận thấy chiến lược phân mảnh theo câu (SentenceChunker) đặc biệt hiệu quả đối với các tài liệu chính sách, vì mỗi câu thường mang một quy định độc lập. Khi kết hợp với cấu trúc metadata thông minh như `customer_role`, chúng ta có thể lọc bớt nhiễu rất hiệu quả trước khi tính toán độ tương tự cosine, giúp truy xuất đúng quy định cho đúng đối tượng.
 
 ---
 
